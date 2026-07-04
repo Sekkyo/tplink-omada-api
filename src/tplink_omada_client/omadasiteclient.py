@@ -42,6 +42,7 @@ from .exceptions import (
     OmadaClientException,
 )
 from .omadaapiconnection import OmadaApiConnection
+from .topology import OmadaTopology
 from .vpn import _VPN_LIST_ENDPOINTS, OmadaVpnCategory, OmadaVpnPolicy
 
 
@@ -260,6 +261,13 @@ class OmadaSiteClient:
         """Get a single device by mac."""
         # So wasteful
         return next(d for d in await self.get_devices() if d.mac == mac)
+
+    async def get_topology(self) -> OmadaTopology:
+        """Get the site's physical network topology tree, rooted at its gateway(s)."""
+
+        result = await self._api.request("get", self._api.format_url("topology", self._site_id))
+
+        return OmadaTopology(result)
 
     async def get_switches(self) -> list[OmadaSwitch]:
         """Get the list of switches on the site."""
