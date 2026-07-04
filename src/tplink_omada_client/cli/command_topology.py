@@ -41,8 +41,9 @@ def _format_node(node: OmadaTopologyNode) -> str:
     type_label = "controller" if node.type == "omada controller" else node.type
     checkbox = get_checkbox_char(not node.disconnected)
 
+    upstream_link_speed = node.upstream_link_speed
     if node.upstream_port is not None:
-        speed = node.upstream_link_speed.name[6:] if node.upstream_link_speed != LinkSpeed.UNKNOWN else "?"
+        speed = upstream_link_speed.name[6:] if upstream_link_speed != LinkSpeed.UNKNOWN else "?"
         port_info = f" <- port {node.upstream_port} ({checkbox} {speed})"
     else:
         port_info = f" ({checkbox})"
@@ -52,12 +53,12 @@ def _format_node(node: OmadaTopologyNode) -> str:
         status_info = f" [{node.status.name} / {node.status_category.name}]"
 
     wan_info = ""
-    if node.wan_ports:
+    wan_ports = node.wan_ports
+    if wan_ports:
         summaries = [
-            f"{wan.name}: {get_checkbox_char(wan.wan_connected)} {wan.link_speed.name[6:]}" for wan in node.wan_ports
+            f"{wan.name}: {get_checkbox_char(wan.wan_connected)} {wan.link_speed.name[6:]}" for wan in wan_ports
         ]
         wan_info = f" ({', '.join(summaries)})"
-
     return f"{node.name} [{type_label}] {node.mac}{port_info}{status_info}{wan_info}"
 
 
