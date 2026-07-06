@@ -1,4 +1,4 @@
-"""Implementation for 'set-names-from-dns' command"""
+"""Implementation for 'sync-names' command"""
 
 import asyncio
 from argparse import _SubParsersAction
@@ -13,8 +13,8 @@ from .config import get_target_config, to_omada_connection
 from .util import get_target_argument
 
 
-async def command_set_names_from_dns(args) -> int:
-    """Executes 'set-names-from-dns' command"""
+async def command_sync_names(args) -> int:
+    """Executes 'sync-names' command"""
     controller = get_target_argument(args)
     config = get_target_config(controller)
 
@@ -59,10 +59,10 @@ async def _resolve_hostname(client: OmadaConnectedClient, resolver: dns.resolver
 
 
 def arg_parser(subparsers: _SubParsersAction) -> None:
-    """Configures arguments parser for 'set-names-from-dns' command"""
+    """Configures arguments parser for 'sync-names' command"""
     parser = subparsers.add_parser(
-        "set-names-from-dns",
-        help="Sets client names using reverse DNS lookups of their IP addresses",
+        "sync-names",
+        help="Syncs client names to match reverse DNS lookups of their IP addresses",
     )
     parser.add_argument(
         "--dry-run",
@@ -76,4 +76,4 @@ def arg_parser(subparsers: _SubParsersAction) -> None:
         help="DNS server to query for reverse lookups (defaults to the system's configured resolver)",
         default=None,
     )
-    parser.set_defaults(func=command_set_names_from_dns)
+    parser.set_defaults(func=command_sync_names)

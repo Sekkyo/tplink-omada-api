@@ -1,4 +1,4 @@
-"""Tests for the 'set-names-from-dns' CLI command."""
+"""Tests for the 'sync-names' CLI command."""
 
 import asyncio
 from types import SimpleNamespace
@@ -6,7 +6,7 @@ from types import SimpleNamespace
 import dns.exception
 import dns.resolver
 
-from tplink_omada_client.cli import command_set_names_from_dns
+from tplink_omada_client.cli import command_sync_names
 from tplink_omada_client.cli.config import ControllerConfig
 from tplink_omada_client.clients import OmadaWiredClient
 
@@ -51,10 +51,10 @@ class FakeConnection:
 
 def _run_command(monkeypatch, site_client: FakeSiteClient, dry_run: bool = False, dns_server: str | None = None) -> int:
     config = ControllerConfig("url", "user", "pass", "Default", True)
-    monkeypatch.setattr(command_set_names_from_dns, "get_target_config", lambda target: config)
-    monkeypatch.setattr(command_set_names_from_dns, "to_omada_connection", lambda target_config: FakeConnection(site_client))
+    monkeypatch.setattr(command_sync_names, "get_target_config", lambda target: config)
+    monkeypatch.setattr(command_sync_names, "to_omada_connection", lambda target_config: FakeConnection(site_client))
     return asyncio.run(
-        command_set_names_from_dns.command_set_names_from_dns({"target": "", "dry_run": dry_run, "dns_server": dns_server})
+        command_sync_names.command_sync_names({"target": "", "dry_run": dry_run, "dns_server": dns_server})
     )
 
 
@@ -62,7 +62,7 @@ def test_resolve_hostname_returns_short_name(monkeypatch):
     monkeypatch.setattr(dns.resolver.Resolver, "resolve_address", lambda self, ip: _answer("desktop.lan.example.com."))
 
     hostname = asyncio.run(
-        command_set_names_from_dns._resolve_hostname(_client("mac-1", "old-name", "192.0.2.5"), dns.resolver.Resolver())
+        command_sync_names._resolve_hostname(_client("mac-1", "old-name", "192.0.2.5"), dns.resolver.Resolver())
     )
 
     assert hostname == "desktop"
@@ -75,7 +75,7 @@ def test_resolve_hostname_returns_none_when_lookup_fails(monkeypatch):
     monkeypatch.setattr(dns.resolver.Resolver, "resolve_address", _raise)
 
     hostname = asyncio.run(
-        command_set_names_from_dns._resolve_hostname(_client("mac-1", "old-name", "192.0.2.5"), dns.resolver.Resolver())
+        command_sync_names._resolve_hostname(_client("mac-1", "old-name", "192.0.2.5"), dns.resolver.Resolver())
     )
 
     assert hostname is None
@@ -83,7 +83,7 @@ def test_resolve_hostname_returns_none_when_lookup_fails(monkeypatch):
 
 def test_resolve_hostname_returns_none_when_client_has_no_ip():
     hostname = asyncio.run(
-        command_set_names_from_dns._resolve_hostname(_client("mac-1", "old-name", None), dns.resolver.Resolver())
+        command_sync_names._resolve_hostname(_client("mac-1", "old-name", None), dns.resolver.Resolver())
     )
 
     assert hostname is None
@@ -100,7 +100,7 @@ def test_resolve_hostname_uses_configured_dns_server(monkeypatch):
 
     resolver = dns.resolver.Resolver()
     resolver.nameservers = ["10.0.5.5"]
-    asyncio.run(command_set_names_from_dns._resolve_hostname(_client("mac-1", "old-name", "192.0.2.5"), resolver))
+    asyncio.run(command_sync_names._resolve_hostname(_client("mac-1", "old-name", "192.0.2.5"), resolver))
 
     assert seen_nameservers == [["10.0.5.5"]]
 
@@ -161,7 +161,7 @@ def test_command_passes_dns_server_to_resolver(monkeypatch):
     assert seen_nameservers == [["10.0.5.5"]]
 
 
-def test_main_registers_set_names_from_dns_command(monkeypatch):
+def test_main_registers_sync_names_command(monkeypatch):
     from tplink_omada_client import cli
 
     seen = {}
@@ -170,9 +170,9 @@ def test_main_registers_set_names_from_dns_command(monkeypatch):
         seen.update(args)
         return 0
 
-    monkeypatch.setattr(cli.command_set_names_from_dns, "command_set_names_from_dns", fake_command)
+    monkeypatch.setattr(cli.command_sync_names, "command_sync_names", fake_command)
 
-    assert cli.main(["set-names-from-dns"]) == 0
+    assert cli.main(["sync-names"]) == 0
     assert seen["target"] == ""
     assert seen["dry_run"] is False
     assert seen["dns_server"] is None
@@ -187,9 +187,9 @@ def test_main_parses_dry_run_flag(monkeypatch):
         seen.update(args)
         return 0
 
-    monkeypatch.setattr(cli.command_set_names_from_dns, "command_set_names_from_dns", fake_command)
+    monkeypatch.setattr(cli.command_sync_names, "command_sync_names", fake_command)
 
-    assert cli.main(["set-names-from-dns", "--dry-run"]) == 0
+    assert cli.main(["sync-names", "--dry-run"]) == 0
     assert seen["dry_run"] is True
 
 
@@ -202,7 +202,7 @@ def test_main_parses_dns_server_flag(monkeypatch):
         seen.update(args)
         return 0
 
-    monkeypatch.setattr(cli.command_set_names_from_dns, "command_set_names_from_dns", fake_command)
+    monkeypatch.setattr(cli.command_sync_names, "command_sync_names", fake_command)
 
-    assert cli.main(["set-names-from-dns", "--dns-server", "10.0.5.5"]) == 0
+    assert cli.main(["sync-names", "--dns-server", "10.0.5.5"]) == 0
     assert seen["dns_server"] == "10.0.5.5"

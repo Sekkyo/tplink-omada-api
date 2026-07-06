@@ -26,10 +26,10 @@ from . import (
     command_reconnect_client,
     command_set_client_name,
     command_set_device_led,
-    command_set_names_from_dns,
     command_switch,
     command_switch_ports,
     command_switches,
+    command_sync_names,
     command_target,
     command_targets,
     command_unblock_client,
@@ -67,10 +67,10 @@ def main(argv: Sequence[str] | None = None) -> int:
     command_certificate.arg_parser(subparsers)
     command_set_client_name.arg_parser(subparsers)
     command_set_device_led.arg_parser(subparsers)
-    command_set_names_from_dns.arg_parser(subparsers)
     command_switch.arg_parser(subparsers)
     command_switch_ports.arg_parser(subparsers)
     command_switches.arg_parser(subparsers)
+    command_sync_names.arg_parser(subparsers)
     command_target.arg_parser(subparsers)
     command_targets.arg_parser(subparsers)
     command_unblock_client.arg_parser(subparsers)
