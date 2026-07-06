@@ -1,6 +1,8 @@
 """Implementation for 'sync-names' command"""
 
+import argparse
 import asyncio
+import ipaddress
 from argparse import _SubParsersAction
 
 import dns.exception
@@ -54,8 +56,20 @@ async def _resolve_hostname(client: OmadaConnectedClient, resolver: dns.resolver
         answer = await asyncio.to_thread(resolver.resolve_address, client.ip)
     except dns.exception.DNSException:
         return None
+    if len(answer) == 0:
+        return None
     resolved = str(answer[0].target).rstrip(".")
-    return resolved.split(".", maxsplit=1)[0]
+    short_name = resolved.split(".", maxsplit=1)[0].strip()
+    return short_name or None
+
+
+def _ip_address(value: str) -> str:
+    """argparse type callable: validates value is a literal IP address."""
+    try:
+        ipaddress.ip_address(value)
+    except ValueError as error:
+        raise argparse.ArgumentTypeError(f"{value!r} is not a valid IP address") from error
+    return value
 
 
 def arg_parser(subparsers: _SubParsersAction) -> None:
@@ -73,6 +87,7 @@ def arg_parser(subparsers: _SubParsersAction) -> None:
     parser.add_argument(
         "--dns-server",
         dest="dns_server",
+        type=_ip_address,
         help="DNS server to query for reverse lookups (defaults to the system's configured resolver)",
         default=None,
     )

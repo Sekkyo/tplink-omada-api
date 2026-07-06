@@ -5,6 +5,7 @@ from types import SimpleNamespace
 
 import dns.exception
 import dns.resolver
+import pytest
 
 from tplink_omada_client.cli import command_sync_names
 from tplink_omada_client.cli.config import ControllerConfig
@@ -103,6 +104,26 @@ def test_resolve_hostname_uses_configured_dns_server(monkeypatch):
     asyncio.run(command_sync_names._resolve_hostname(_client("mac-1", "old-name", "192.0.2.5"), resolver))
 
     assert seen_nameservers == [["10.0.5.5"]]
+
+
+def test_resolve_hostname_returns_none_for_empty_answer(monkeypatch):
+    monkeypatch.setattr(dns.resolver.Resolver, "resolve_address", lambda self, ip: [])
+
+    hostname = asyncio.run(
+        command_sync_names._resolve_hostname(_client("mac-1", "old-name", "192.0.2.5"), dns.resolver.Resolver())
+    )
+
+    assert hostname is None
+
+
+def test_resolve_hostname_returns_none_for_blank_resolved_name(monkeypatch):
+    monkeypatch.setattr(dns.resolver.Resolver, "resolve_address", lambda self, ip: _answer("."))
+
+    hostname = asyncio.run(
+        command_sync_names._resolve_hostname(_client("mac-1", "old-name", "192.0.2.5"), dns.resolver.Resolver())
+    )
+
+    assert hostname is None
 
 
 def test_command_updates_clients_with_resolvable_names(monkeypatch, capsys):
@@ -206,3 +227,13 @@ def test_main_parses_dns_server_flag(monkeypatch):
 
     assert cli.main(["sync-names", "--dns-server", "10.0.5.5"]) == 0
     assert seen["dns_server"] == "10.0.5.5"
+
+
+def test_main_rejects_invalid_dns_server(capsys):
+    from tplink_omada_client import cli
+
+    with pytest.raises(SystemExit) as exc_info:
+        cli.main(["sync-names", "--dns-server", "not-an-ip"])
+
+    assert exc_info.value.code == 2
+    assert "not a valid IP address" in capsys.readouterr().err
