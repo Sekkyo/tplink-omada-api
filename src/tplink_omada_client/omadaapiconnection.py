@@ -90,6 +90,8 @@ class OmadaApiConnection:
         However, you may want to attempt a login to check connectivity.
         """
 
+        self._clear_login_state()
+
         version, controller_id = await self._get_controller_info()
 
         if AwesomeVersion(version) < AwesomeVersion("5.1.0"):
@@ -105,6 +107,12 @@ class OmadaApiConnection:
         self._last_logon = time.time()
 
         return self._controller_id
+
+    def _clear_login_state(self) -> None:
+        """Clear authentication state associated with this controller."""
+        self._csrf_token = None
+        if self._session is not None:
+            self._session.cookie_jar.clear_domain(self._host)
 
     async def _check_login(self) -> bool:
         if self._csrf_token is None:
@@ -228,7 +236,11 @@ class OmadaApiConnection:
         if not await self._check_login():
             await self.login()
 
-        return await self._do_request(method, url, params=params, json=json, data=data)
+        try:
+            return await self._do_request(method, url, params=params, json=json, data=data)
+        except (LoginFailed, LoginSessionClosed):
+            await self.login()
+            return await self._do_request(method, url, params=params, json=json, data=data)
 
     async def get_controller_version(self) -> AwesomeVersion:
         """Get the controller version as an AwesomeVersion object."""
